@@ -163,6 +163,7 @@ Resources:
 
   rRoleVPCFlowLogs:
     Type: AWS::IAM::Role
+    #checkov:skip=CKV_AWS_111: "Ensure IAM policies does not allow write access without constraints"
     Properties:
       AssumeRolePolicyDocument:
         Statement:
