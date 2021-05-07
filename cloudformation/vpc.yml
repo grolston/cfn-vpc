@@ -1,0 +1,483 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  VPC with public/private subnets spanning 2 or 3 AZs and setup of AWS FlowLogs,
+  DynamoDB and S3 Endpoints
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Template Version
+        Parameters:
+          - pTemplateVersion
+      - Label:
+          default: VPC Config
+        Parameters:
+          - pVPCName
+          - pVPCCidr
+          - pVPCTenancy
+          - pNumberOfAzs
+      - Label:
+          default: Tagging
+        Parameters:
+          - pEnvironment
+    ParameterLabels:
+      pVPCName:
+        default: Name of VPC
+      pVPCCidr:
+        default: VPC CIDR Block
+      pVPCTenancy:
+        default: Instance Tenancy
+      pEnvironment:
+        default: Environment
+      pTemplateVersion:
+        default: CloudFormation Template Version
+      pNumberOfAzs:
+        default: Number of AZs to use
+
+Parameters:
+
+  pVPCCidr:
+    Default: 192.168.0.0/16
+    Description: CIDR block for VPC. Example 10.0.0.0/16
+    Type: String
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+
+  pVPCName:
+    Description: VPC name used for reference
+    Type: String
+
+  pVPCTenancy:
+    AllowedValues:
+      - default
+      - dedicated
+    Default: default
+    Description: Instance tenancy behavior for this VPC
+    Type: String
+
+
+
+  pEnvironment:
+    Type: String
+    Description: value for tag Environment. Values can be Production, Development, QA, or Staging
+    AllowedValues:
+      - "Production"
+      - "Development"
+      - "QA"
+      - "Staging"
+
+  ## Template Version does not change unless developers
+  ## update the git repo. The parameter below is not to
+  ## changed by the end user when launching template
+  pTemplateVersion:
+    Type: String
+    Default: "1.0.0"
+    AllowedValues:
+      - "1.0.0"
+    ConstraintDescription: Do not change
+
+  pNumberOfAzs:
+    Type: String
+    Default: "3"
+    AllowedValues:
+      - "2"
+      - "3"
+
+Conditions:
+  3AZDeployment: !Equals [!Ref pNumberOfAzs, "3"]
+
+Resources:
+  rEIPA:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  rEIPB:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  rEIPC:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  rFlowLogVPC:
+    Type: AWS::EC2::FlowLog
+    DependsOn: rLogGroupFlowLogs
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt rRoleVPCFlowLogs.Arn
+      LogGroupName: !Sub "${pVPCName}-FlowLogs"
+      ResourceId: !Ref rVPC
+      ResourceType: VPC
+      TrafficType: ALL
+
+  rInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub "${pVPCName} - vpc-igw"
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: "Template Version"
+          Value: !Ref pTemplateVersion
+
+  rLogGroupFlowLogs:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: 'Retain'
+    UpdateReplacePolicy: 'Retain'
+    Properties:
+      LogGroupName: !Sub "${pVPCName}-FlowLogs"
+      RetentionInDays: 90
+
+  rLogStreamVPCFlowLogs:
+    Type: AWS::Logs::LogStream
+    DependsOn: rLogGroupFlowLogs
+    Properties:
+      LogGroupName: !Sub "${pVPCName}-FlowLogs"
+
+  rNatGatewaySubnetA:
+    Type: AWS::EC2::NatGateway
+    DependsOn: rInternetGateway
+    Properties:
+      AllocationId: !GetAtt rEIPA.AllocationId
+      SubnetId: !Ref rSubnetDMZA
+
+  rNatGatewaySubnetB:
+    Type: AWS::EC2::NatGateway
+    DependsOn: rInternetGateway
+    Properties:
+      AllocationId: !GetAtt rEIPB.AllocationId
+      SubnetId: !Ref rSubnetDMZB
+
+  rNatGatewaySubnetC:
+    Type: AWS::EC2::NatGateway
+    Condition: 3AZDeployment
+    DependsOn: rInternetGateway
+    Properties:
+      AllocationId: !GetAtt rEIPC.AllocationId
+      SubnetId: !Ref rSubnetDMZC
+
+  rRoleVPCFlowLogs:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: vpc-flow-logs.amazonaws.com
+            Sid: AllowFlowLogs
+        Version: 2012-10-17
+      Path: /
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                Effect: Allow
+                Resource: "*"
+            Version: 2012-10-17
+          PolicyName: cloudwatchlogsrole
+      RoleName: !Sub "${pVPCName}-${AWS::Region}-RoleFlowLogs"
+      Tags:
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: VPC
+          Value: !Ref pVPCName
+        - Key: "Template Version"
+          Value: !Ref pTemplateVersion
+
+  rRoutePrivateNatGatewayA:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref rNatGatewaySubnetA
+      RouteTableId: !Ref rRouteTablePrivateA
+
+  rRoutePrivateNatGatewayB:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref rNatGatewaySubnetB
+      RouteTableId: !Ref rRouteTablePrivateB
+
+  rRoutePrivateNatGatewayC:
+    Type: AWS::EC2::Route
+    Condition: 3AZDeployment
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref rNatGatewaySubnetC
+      RouteTableId: !Ref rRouteTablePrivateC
+
+  rRouteTableDmz:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref rVPC
+      Tags:
+        - Key: Name
+          Value: DMZ Route
+        - Key: Environment
+          Value: !Ref pEnvironment
+
+  rRouteTablePrivateA:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref rVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${pVPCName} - Private Route A"
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: "Template Version"
+          Value: !Ref pTemplateVersion
+
+  rRouteTablePrivateB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref rVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${pVPCName} - Private Route B"
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: "Template Version"
+          Value: !Ref pTemplateVersion
+
+  rRouteTablePrivateC:
+    Type: AWS::EC2::RouteTable
+    Condition: 3AZDeployment
+    Properties:
+      VpcId: !Ref rVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${pVPCName} - Private Route C"
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: "Template Version"
+          Value: !Ref pTemplateVersion
+
+  rRouteVPCIgw:
+    Type: AWS::EC2::Route
+    DependsOn: rVPCGatewayAttachmentInternetGateway
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref rInternetGateway
+      RouteTableId: !Ref rRouteTableDmz
+
+  rSubnetDMZA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: !Select [0, !Cidr [!Ref pVPCCidr, 6, 13]]
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref rVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${pVPCName} - DMZ Subnet A"
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: "Template Version"
+          Value: !Ref pTemplateVersion
+
+  rSubnetDMZB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      CidrBlock: !Select [1, !Cidr [!Ref pVPCCidr, 6, 13]]
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref rVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${pVPCName} - DMZ Subnet B"
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: "Template Version"
+          Value: !Ref pTemplateVersion
+
+  rSubnetDMZC:
+    Type: AWS::EC2::Subnet
+    Condition: 3AZDeployment
+    Properties:
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      CidrBlock: !Select [2, !Cidr [!Ref pVPCCidr, 6, 13]]
+      MapPublicIpOnLaunch: true
+      VpcId: !Ref rVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${pVPCName} - DMZ Subnet C"
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: "Template Version"
+          Value: !Ref pTemplateVersion
+
+  rSubnetPrivateA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: !Select [3, !Cidr [!Ref pVPCCidr, 6, 13]]
+      VpcId: !Ref rVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${pVPCName} - Private Subnet A"
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: "Template Version"
+          Value: !Ref pTemplateVersion
+
+  rSubnetPrivateB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      CidrBlock: !Select [4, !Cidr [!Ref pVPCCidr, 6, 13]]
+      VpcId: !Ref rVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${pVPCName} - Private Subnet B"
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: "Template Version"
+          Value: !Ref pTemplateVersion
+
+  rSubnetPrivateC:
+    Type: AWS::EC2::Subnet
+    Condition: 3AZDeployment
+    Properties:
+      AvailabilityZone: !Select [2, !GetAZs ""]
+      CidrBlock: !Select [5, !Cidr [!Ref pVPCCidr, 6, 13]]
+      VpcId: !Ref rVPC
+      Tags:
+        - Key: Name
+          Value: !Sub "${pVPCName} - Private Subnet C"
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: "Template Version"
+          Value: !Ref pTemplateVersion
+
+  rSubnetRouteTableAssociationDMZA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref rRouteTableDmz
+      SubnetId: !Ref rSubnetDMZA
+
+  rSubnetRouteTableAssociationDMZB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref rRouteTableDmz
+      SubnetId: !Ref rSubnetDMZB
+
+  rSubnetRouteTableAssociationDMZC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: 3AZDeployment
+    Properties:
+      RouteTableId: !Ref rRouteTableDmz
+      SubnetId: !Ref rSubnetDMZC
+
+  rSubnetRouteTableAssociationPrivateA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref rRouteTablePrivateA
+      SubnetId: !Ref rSubnetPrivateA
+
+  rSubnetRouteTableAssociationPrivateB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref rRouteTablePrivateB
+      SubnetId: !Ref rSubnetPrivateB
+
+  rSubnetRouteTableAssociationPrivateC:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: 3AZDeployment
+    Properties:
+      RouteTableId: !Ref rRouteTablePrivateC
+      SubnetId: !Ref rSubnetPrivateC
+
+  rVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref pVPCCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: !Ref pVPCTenancy
+      Tags:
+        - Key: Name
+          Value: !Ref pVPCName
+        - Key: Environment
+          Value: !Ref pEnvironment
+        - Key: "Template Version"
+          Value: !Ref pTemplateVersion
+
+  ## DynamoDb Endpoint for VPC utilization
+  rVPCEndpointDynamoDb:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: "*"
+            Effect: Allow
+            Principal: "*"
+            Resource: "*"
+        Version: 2012-10-17
+      RouteTableIds:
+        - !Ref rRouteTableDmz
+        - !Ref rRouteTablePrivateA
+        - !Ref rRouteTablePrivateB
+        - !If [3AZDeployment ,!Ref rRouteTablePrivateC, !Ref "AWS::NoValue"]
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.dynamodb"
+      VpcId: !Ref rVPC
+
+  ## S3 Endpoint for VPC utilization
+  rVPCEndpointS3:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: "*"
+            Effect: Allow
+            Principal: "*"
+            Resource: "*"
+        Version: 2012-10-17
+      RouteTableIds:
+        - !Ref rRouteTableDmz
+        - !Ref rRouteTablePrivateA
+        - !Ref rRouteTablePrivateB
+        - !If [3AZDeployment ,!Ref rRouteTablePrivateC, !Ref "AWS::NoValue"]
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcId: !Ref rVPC
+
+  rVPCGatewayAttachmentInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref rInternetGateway
+      VpcId: !Ref rVPC
+
+Outputs:
+  oRouteTableDmz:
+    Value: !Ref rRouteTableDmz
+  oRouteTablePrivateA:
+    Value: !Ref rRouteTablePrivateA
+  oRouteTablePrivateB:
+    Value: !Ref rRouteTablePrivateB
+  oRouteTablePrivateC:
+      Value: !If [3AZDeployment ,!Ref rRouteTablePrivateC, "Unused"]
+  oSubnetDMZA:
+    Value: !Ref rSubnetDMZA
+  oSubnetDMZB:
+    Value: !Ref rSubnetDMZB
+  oSubnetDMZC:
+    Value: !If [3AZDeployment , !Ref rSubnetDMZC, "Unused"]
+  oSubnetPrivateA:
+    Value: !Ref rSubnetPrivateA
+  oSubnetPrivateB:
+    Value: !Ref rSubnetPrivateB
+  oSubnetPrivateC:
+    Value: !If [3AZDeployment , !Ref rSubnetPrivateC, "Unused"]
+  oVPC:
+    Value: !Ref rVPC
