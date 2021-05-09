@@ -57,8 +57,6 @@ Parameters:
     Description: Instance tenancy behavior for this VPC
     Type: String
 
-
-
   pEnvironment:
     Type: String
     Description: value for tag Environment. Values can be Production, Development, QA, or Staging
@@ -67,6 +65,7 @@ Parameters:
       - "Development"
       - "QA"
       - "Staging"
+      - "Management"
 
   ## Template Version does not change unless developers
   ## update the git repo. The parameter below is not to
