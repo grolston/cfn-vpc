@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-The following prerequisites will need to be met to launch the MCM Auditor solution in your account.
+The following prerequisites will need to be met to launch solution in your account.
 
 1. Ensure the default VPC is deleted in the region being deployed (best practices)
 2. Have a non-overlapping RFC 1918 CIDR Block identified
