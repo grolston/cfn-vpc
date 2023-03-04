@@ -39,7 +39,7 @@ Metadata:
 Parameters:
 
   pVPCCidr:
-    Default: 192.168.0.0/16
+    Default: 10.10.0.0/16
     Description: CIDR block for VPC. Example 10.0.0.0/16
     Type: String
     AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
@@ -457,6 +457,16 @@ Resources:
     Properties:
       InternetGatewayId: !Ref rInternetGateway
       VpcId: !Ref rVPC
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS MySQL
+      DBSubnetGroupName: Affinity-DB-Subnet
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !Ref rSubnetPrivateC
 
 Outputs:
   oRouteTableDmz:
