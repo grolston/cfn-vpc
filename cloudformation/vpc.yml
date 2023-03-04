@@ -103,15 +103,15 @@ Resources:
     Properties:
       Domain: vpc
 
-  rFlowLogVPC:
-    Type: AWS::EC2::FlowLog
-    DependsOn: rLogGroupFlowLogs
-    Properties:
-      DeliverLogsPermissionArn: !GetAtt rRoleVPCFlowLogs.Arn
-      LogGroupName: !Sub "${pVPCName}-FlowLogs"
-      ResourceId: !Ref rVPC
-      ResourceType: VPC
-      TrafficType: ALL
+  # rFlowLogVPC:
+  #   Type: AWS::EC2::FlowLog
+  #   DependsOn: rLogGroupFlowLogs
+  #   Properties:
+  #     DeliverLogsPermissionArn: !GetAtt rRoleVPCFlowLogs.Arn
+  #     LogGroupName: !Sub "${pVPCName}-FlowLogs"
+  #     ResourceId: !Ref rVPC
+  #     ResourceType: VPC
+  #     TrafficType: ALL
 
   rInternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -124,19 +124,19 @@ Resources:
         - Key: "Template Version"
           Value: !Ref pTemplateVersion
 
-  rLogGroupFlowLogs:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: 'Retain'
-    UpdateReplacePolicy: 'Retain'
-    Properties:
-      LogGroupName: !Sub "${pVPCName}-FlowLogs"
-      RetentionInDays: 90
+  # rLogGroupFlowLogs:
+  #   Type: AWS::Logs::LogGroup
+  #   DeletionPolicy: 'Retain'
+  #   UpdateReplacePolicy: 'Retain'
+  #   Properties:
+  #     LogGroupName: !Sub "${pVPCName}-FlowLogs"
+  #     RetentionInDays: 90
 
-  rLogStreamVPCFlowLogs:
-    Type: AWS::Logs::LogStream
-    DependsOn: rLogGroupFlowLogs
-    Properties:
-      LogGroupName: !Sub "${pVPCName}-FlowLogs"
+  # rLogStreamVPCFlowLogs:
+  #   Type: AWS::Logs::LogStream
+  #   DependsOn: rLogGroupFlowLogs
+  #   Properties:
+  #     LogGroupName: !Sub "${pVPCName}-FlowLogs"
 
   rNatGatewaySubnetA:
     Type: AWS::EC2::NatGateway
@@ -466,7 +466,7 @@ Resources:
       SubnetIds:
         - !Ref rSubnetPrivateA
         - !Ref rSubnetPrivateB
-        - !Ref rSubnetPrivateC
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
 
 Outputs:
   oRouteTableDmz:
