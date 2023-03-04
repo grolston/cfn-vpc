@@ -462,7 +462,7 @@ Resources:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
       DBSubnetGroupDescription: Subnet group for RDS MySQL
-      DBSubnetGroupName: Affinity-DB-Subnet
+      DBSubnetGroupName: RDS-DB-Subnet
       SubnetIds:
         - !Ref rSubnetPrivateA
         - !Ref rSubnetPrivateB
