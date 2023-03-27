@@ -1,8 +1,7 @@
 ---
 AWSTemplateFormatVersion: 2010-09-09
 Description: >
-  VPC with public/private subnets spanning 2 or 3 AZs and setup of AWS FlowLogs,
-  DynamoDB and S3 Endpoints
+  VPC with public/private subnets spanning 2 or 3 AZs and setup of AWS FlowLogs and VPC Endpoints
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -18,6 +17,34 @@ Metadata:
           - pVPCCidr
           - pVPCTenancy
           - pNumberOfAzs
+          - pEnableFlowLogs
+      - Label:
+          default: Subnet Configurations
+        Parameters:
+          - pDeployRdsSubnet
+          - pDeployRedShiftClusterSubnet
+      - Label:
+          default: Optional VPC Endpoint Configs
+        Parameters:
+          - pDeployS3Endpoint
+          - pDeployDynamodbEndpoint
+          - pDeployApiGatewayEndpoint
+          - pDeployAuroraRdsEndpoint
+          - pDeployAwsBackupEndpoints
+          - pDeployCloudWatchLogsEndpoint
+          - pDeployDataSyncEndpoint
+          - pDeployEc2ImageBuilderEndpoint
+          - pDeployECREndpoints
+          - pDeployEcsEndpoints
+          - pDeployEksEndpoints
+          - pDeploySecretsManagerEndpoint
+          - pDeploySesEndpoint
+          - pDeploySftpTransferEndpoints
+          - pDeploySnsEndpoint
+          - pDeploySqsEndpoint
+          - pDeploySsmEndpoints
+          - pDeployStsEndpoint
+
       - Label:
           default: Tagging
         Parameters:
@@ -35,6 +62,48 @@ Metadata:
         default: CloudFormation Template Version
       pNumberOfAzs:
         default: Number of AZs to use
+      pDeployS3Endpoint:
+        default: S3 Endpoint
+      pDeployDynamodbEndpoint:
+        default: Dynamodb Endpoint
+      pDeploySecretsManagerEndpoint:
+        default: Secrets Endpoint
+      pDeployECREndpoints:
+        default: ECR Endpoints
+      pDeployEcsEndpoints:
+        default: ECS Endpints
+      pDeployEksEndpoints:
+        default: EKS Endpoint
+      pDeploySsmEndpoints:
+        default: SSM Endpoints
+      pDeployCloudWatchLogsEndpoint:
+        default: CloudWatch Logs Endpoint
+      pDeployStsEndpoint:
+        default: STS Endpoint
+      pDeploySesEndpoint:
+        default: SES Endpoint
+      pDeploySnsEndpoint:
+        default: SNS Endpoint
+      pDeploySqsEndpoint:
+        default: SQS Endpoint
+      pDeploySftpTransferEndpoints:
+        default: SFTP Transfer Endpoints
+      pDeployAwsBackupEndpoints:
+        default: AWS Backup Endpoints
+      pDeployAuroraRdsEndpoint:
+        default: Aurorad RDS Endpoint
+      pDeployEc2ImageBuilderEndpoint:
+        default: EC2 Imaege Builder Endpoint
+      pDeployDataSyncEndpoint:
+        default: Data Sync Endpoint
+      pDeployApiGatewayEndpoint:
+        default: API Gateway Endpoint
+      pDeployRdsSubnet:
+        default: Deploy RDS Subnets
+      pDeployRedShiftClusterSubnet:
+        defauly: Deploy RedShift Cluster Subnets
+      pEnableFlowLogs:
+        default: Enable VPC Flow Logs
 
 Parameters:
 
@@ -72,20 +141,175 @@ Parameters:
   ## changed by the end user when launching template
   pTemplateVersion:
     Type: String
-    Default: "1.0.0"
+    Default: "2.0.0"
     AllowedValues:
-      - "1.0.0"
+      - "2.0.0"
     ConstraintDescription: Do not change
 
   pNumberOfAzs:
     Type: String
+    Description: The number of AZs to use. A public and private subnet will be deployed to each AZ
     Default: "3"
     AllowedValues:
       - "2"
       - "3"
 
+  pDeployS3Endpoint:
+    Description: Option to deploy S3 endpoint for VPC.
+    Type: String
+    Default: "Yes"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeployDynamodbEndpoint:
+    Description: Option to deploy DynamoDB endpoint.
+    Type: String
+    Default: "Yes"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeployApiGatewayEndpoint:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeployAuroraRdsEndpoint:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeployAwsBackupEndpoints:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeployCloudWatchLogsEndpoint:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeployDataSyncEndpoint:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeployEc2ImageBuilderEndpoint:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeployECREndpoints:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeployEcsEndpoints:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeployEksEndpoints:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeploySecretsManagerEndpoint:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeploySesEndpoint:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeploySftpTransferEndpoints:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeploySnsEndpoint:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeploySqsEndpoint:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeploySsmEndpoints:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+  pDeployStsEndpoint:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+
+  pDeployRdsSubnet:
+    Type: String
+    Default: "Yes"
+    AllowedValues:
+      - "Yes"
+      - "No"
+
+  pDeployRedShiftClusterSubnet:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+
+  pEnableFlowLogs:
+    Type: String
+    Default: "No"
+    AllowedValues:
+      - "Yes"
+      - "No"
+
 Conditions:
   3AZDeployment: !Equals [!Ref pNumberOfAzs, "3"]
+  cDeployS3Endpoint: !Equals [!Ref pDeployS3Endpoint, "Yes"]
+  cDeployDynamodbEndpoint: !Equals [!Ref pDeployDynamodbEndpoint, "Yes"]
+  cDeployApiGatewayEndpoint: !Equals [!Ref pDeployApiGatewayEndpoint, "Yes"]
+  cDeployAuroraRdsEndpoint: !Equals [!Ref pDeployAuroraRdsEndpoint, "Yes"]
+  cDeployAwsBackupEndpoints: !Equals [!Ref pDeployAwsBackupEndpoints, "Yes"]
+  cDeployCloudWatchLogsEndpoint: !Equals [!Ref pDeployCloudWatchLogsEndpoint, "Yes"]
+  cDeployDataSyncEndpoint: !Equals [!Ref pDeployDataSyncEndpoint, "Yes"]
+  cDeployEc2ImageBuilderEndpoint: !Equals [!Ref pDeployEc2ImageBuilderEndpoint, "Yes"]
+  cDeployECREndpoints: !Equals [!Ref pDeployECREndpoints, "Yes"]
+  cDeployEcsEndpoints: !Equals [!Ref pDeployEcsEndpoints, "Yes"]
+  cDeployEksEndpoints: !Equals [!Ref pDeployEksEndpoints, "Yes"]
+  cDeploySecretsManagerEndpoint: !Equals [!Ref pDeploySecretsManagerEndpoint, "Yes"]
+  cDeploySesEndpoint: !Equals [!Ref pDeploySesEndpoint, "Yes"]
+  cDeploySftpTransferEndpoints: !Equals [!Ref pDeploySftpTransferEndpoints, "Yes"]
+  cDeploySnsEndpoint: !Equals [!Ref pDeploySnsEndpoint, "Yes"]
+  cDeploySqsEndpoint: !Equals [!Ref pDeploySqsEndpoint, "Yes"]
+  cDeploySsmEndpoints: !Equals [!Ref pDeploySsmEndpoints, "Yes"]
+  cDeployStsEndpoint: !Equals [!Ref pDeployStsEndpoint, "Yes"]
+  cDeployRdsSubnet: !Equals [!Ref pDeployRdsSubnet, "Yes"]
+  cDeployRedShiftClusterSubnet: !Equals [!Ref pDeployRedShiftClusterSubnet, "Yes"]
+  cEnableFlowLogs: !Equals [!!Ref pEnableFlowLogs, "Yes"]
+
 
 Resources:
   rEIPA:
@@ -103,15 +327,16 @@ Resources:
     Properties:
       Domain: vpc
 
-  # rFlowLogVPC:
-  #   Type: AWS::EC2::FlowLog
-  #   DependsOn: rLogGroupFlowLogs
-  #   Properties:
-  #     DeliverLogsPermissionArn: !GetAtt rRoleVPCFlowLogs.Arn
-  #     LogGroupName: !Sub "${pVPCName}-FlowLogs"
-  #     ResourceId: !Ref rVPC
-  #     ResourceType: VPC
-  #     TrafficType: ALL
+  rFlowLogVPC:
+    Type: AWS::EC2::FlowLog
+    DependsOn: rLogGroupFlowLogs
+    Condition: cEnableFlowLogs
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt rRoleVPCFlowLogs.Arn
+      LogGroupName: !Sub "${pVPCName}-FlowLogs"
+      ResourceId: !Ref rVPC
+      ResourceType: VPC
+      TrafficType: ALL
 
   rInternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -124,19 +349,21 @@ Resources:
         - Key: "Template Version"
           Value: !Ref pTemplateVersion
 
-  # rLogGroupFlowLogs:
-  #   Type: AWS::Logs::LogGroup
-  #   DeletionPolicy: 'Retain'
-  #   UpdateReplacePolicy: 'Retain'
-  #   Properties:
-  #     LogGroupName: !Sub "${pVPCName}-FlowLogs"
-  #     RetentionInDays: 90
+  rLogGroupFlowLogs:
+    Type: AWS::Logs::LogGroup
+    Condition: cEnableFlowLogs
+    DeletionPolicy: 'Retain'
+    UpdateReplacePolicy: 'Retain'
+    Properties:
+      LogGroupName: !Sub "${pVPCName}-FlowLogs"
+      RetentionInDays: 90
 
-  # rLogStreamVPCFlowLogs:
-  #   Type: AWS::Logs::LogStream
-  #   DependsOn: rLogGroupFlowLogs
-  #   Properties:
-  #     LogGroupName: !Sub "${pVPCName}-FlowLogs"
+  rLogStreamVPCFlowLogs:
+    Type: AWS::Logs::LogStream
+    Condition: cEnableFlowLogs
+    DependsOn: rLogGroupFlowLogs
+    Properties:
+      LogGroupName: !Sub "${pVPCName}-FlowLogs"
 
   rNatGatewaySubnetA:
     Type: AWS::EC2::NatGateway
@@ -163,6 +390,7 @@ Resources:
   rRoleVPCFlowLogs:
     Type: AWS::IAM::Role
     #checkov:skip=CKV_AWS_111: "Ensure IAM policies does not allow write access without constraints"
+    Condition: cEnableFlowLogs
     Properties:
       AssumeRolePolicyDocument:
         Statement:
@@ -414,9 +642,74 @@ Resources:
         - Key: "Template Version"
           Value: !Ref pTemplateVersion
 
+  rVPCGatewayAttachmentInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref rInternetGateway
+      VpcId: !Ref rVPC
+
+  ###################################
+  ## VPC Endpoints and Subnets Groups
+  ###################################
+
+  ## Security Group for Interface VPC Endpoint types
+  rInterfaceVpcEndpointSG:
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W5
+            reason: All outbound allowed from VDSS
+          - id: W9
+            reason: VDSS internal CIDR ranges allowed
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Interface VPC Endpoint(s)
+      VpcId: !Ref rVPC
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+          Description: Allow all outbound
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref pVPCCidr
+          Description: Local VPC CIDR
+
+  # RDS subnet group
+  rDBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Condition: cDeployRdsSubnet
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS MySQL
+      DBSubnetGroupName: RDS-DB-Subnet
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+
+  ## Redshift Subnet Groups staged for 2 created subnets
+  rRedshiftClusterSubnetGroup:
+    Type: AWS::Redshift::ClusterSubnetGroup
+    Condition: cDeployRedShiftClusterSubnet
+    Properties:
+      Description: RedShift Cluster Subnet Group
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      Tags:
+      - Key: Name
+        Value: !Sub RedShiftSubnetGroup-${pVPCName}
+
   ## DynamoDb Endpoint for VPC utilization
   rVPCEndpointDynamoDb:
     Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployDynamodbEndpoint
     Properties:
       PolicyDocument:
         Statement:
@@ -436,6 +729,7 @@ Resources:
   ## S3 Endpoint for VPC utilization
   rVPCEndpointS3:
     Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployS3Endpoint
     Properties:
       PolicyDocument:
         Statement:
@@ -452,21 +746,399 @@ Resources:
       ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
       VpcId: !Ref rVPC
 
-  rVPCGatewayAttachmentInternetGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
+  # CloudWatch Logs Endpoint
+  rCloudWatchLogsVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployCloudWatchLogsEndpoint
     Properties:
-      InternetGatewayId: !Ref rInternetGateway
-      VpcId: !Ref rVPC
-
-  DBSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
-    Properties:
-      DBSubnetGroupDescription: Subnet group for RDS MySQL
-      DBSubnetGroupName: RDS-DB-Subnet
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.logs
       SubnetIds:
         - !Ref rSubnetPrivateA
         - !Ref rSubnetPrivateB
         - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: Interface
+      VpcId: !Ref rVPC
+
+  ## DataSync Endpoint for VPC utilization
+  rDataSyncVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployDataSyncEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.datasync
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: Interface
+      VpcId: !Ref rVPC
+
+
+  ## Secrets Manager Endpoint for VPC utilization
+  rSecretsVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeploySecretsManagerEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.secretsmanager
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: Interface
+      VpcId: !Ref rVPC
+
+  ## ECR DKR Endpoint for VPC utilization
+  rEcrDkrVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployECREndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.dkr
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: Interface
+      VpcId: !Ref rVPC
+
+  ## ECR API Endpoint for VPC utilization
+  rEcrApiVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployECREndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.api
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: Interface
+      VpcId: !Ref rVPC
+
+  ## API
+  rApiVPCEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployApiGatewayEndpoint
+    Properties:
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      SecurityGroupIds:
+      - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.execute-api
+      PrivateDnsEnabled: true
+      VpcEndpointType: Interface
+      VpcId: !Ref rVPC
+
+  ## SSM Endpoints
+  rSSMEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeploySsmEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ssm"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  rSsmMessagesEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeploySsmEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ssmmessages"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: Interface
+      VpcId: !Ref rVPC
+
+  rEc2MessagesEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeploySsmEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ec2messages"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: Interface
+      VpcId: !Ref rVPC
+
+  rSsmContactsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeploySsmEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.sssm-contacts"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: Interface
+      VpcId: !Ref rVPC
+
+  rSsmIncidentsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeploySsmEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.sssm-incidents"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: Interface
+      VpcId: !Ref rVPC
+
+  ## AWS Backup
+  rBackupEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployAwsBackupEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.backup"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  rBackupGatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployAwsBackupEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.backup-gateway"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  ## AWS EC2 Image Builder
+  rEC2ImapgeBuilderEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployEc2ImageBuilderEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.imagebuilder"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  ## Amazon Aurora and RDS
+  rAuroraRdsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployAuroraRdsEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.rds"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  ## ECS Endpoints
+  rEcsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployEcsEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ecs"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  rEcsAgentEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployEcsEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ecs-agent"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  rEcsTelemetryEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployEcsEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.ecs-telemetry"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  ### EKS
+  rEksEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeployEksEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.eks"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  ## SES
+  rSesEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeploySesEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.email-smtp"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  ## SNS
+  rSnsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeploySnsEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.sns"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  ## SQS
+  rSqsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeploySqsEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.sqs"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  ## Transfer for SFTP services
+  rSftpTransferEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeploySftpTransferEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.transfer"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  rSftpTransferServerEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: cDeploySftpTransferEndpoints
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.transfer.server"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
+  ## Secutity Token Service (STS)
+  rStsEndpoint:
+    Condition: cDeployStsEndpoint
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PrivateDnsEnabled: true
+      SecurityGroupIds:
+        - !Ref rInterfaceVpcEndpointSG
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.sts"
+      SubnetIds:
+        - !Ref rSubnetPrivateA
+        - !Ref rSubnetPrivateB
+        - !If [3AZDeployment ,!Ref rSubnetPrivateC, !Ref "AWS::NoValue"]
+      VpcEndpointType: 'Interface'
+      VpcId: !Ref rVPC
+
 
 Outputs:
   oRouteTableDmz:
