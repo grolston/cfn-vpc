@@ -308,7 +308,7 @@ Conditions:
   cDeployStsEndpoint: !Equals [!Ref pDeployStsEndpoint, "Yes"]
   cDeployRdsSubnet: !Equals [!Ref pDeployRdsSubnet, "Yes"]
   cDeployRedShiftClusterSubnet: !Equals [!Ref pDeployRedShiftClusterSubnet, "Yes"]
-  cEnableFlowLogs: !Equals [!!Ref pEnableFlowLogs, "Yes"]
+  cEnableFlowLogs: !Equals [!Ref pEnableFlowLogs, "Yes"]
 
 
 Resources:
